@@ -1,244 +1,225 @@
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local selectedPlayer = nil
-local toggledOn = false
+-- LocalScript in StarterPlayerScripts
+
+local Players      = game:GetService("Players")
+local RunService   = game:GetService("RunService")
+local LocalPlayer  = Players.LocalPlayer
+local Camera       = workspace.CurrentCamera
+
+-- State
+local selectedPlayer    = nil
+local highlightsOn      = false
+local looking           = false
+local lookConnection
+local oldCameraMode     = LocalPlayer.CameraMode
 
 -- GUI Setup
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "PlayerToolsGui"
+screenGui.Name = "PlayerTools"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
+-- Menu Toggle Button
+local menuButton = Instance.new("TextButton", screenGui)
+menuButton.Size = UDim2.new(0,100,0,30)
+menuButton.Position = UDim2.new(0,20,0,20)
+menuButton.Text = "Toggle Menu"
+menuButton.BackgroundColor3 = Color3.fromRGB(150,0,0)
+menuButton.TextColor3 = Color3.new(1,1,1)
+
 -- Main Frame
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 200, 0, 280)
-mainFrame.Position = UDim2.new(0, 20, 0, 20)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0,250,0,330)
+mainFrame.Position = UDim2.new(0,20,0,60)
+mainFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
 mainFrame.Active = true
 mainFrame.Draggable = true
-mainFrame.Parent = screenGui
-
--- Toggle Highlights Button
-local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(1, -20, 0, 40)
-toggleButton.Position = UDim2.new(0, 10, 0, 10)
-toggleButton.Text = "Toggle Highlights"
-toggleButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-toggleButton.TextColor3 = Color3.new(1, 1, 1)
-toggleButton.Font = Enum.Font.GothamBold
-toggleButton.TextScaled = true
-toggleButton.Parent = mainFrame
-
--- Look at Player Button
-local lookButton = Instance.new("TextButton")
-lookButton.Size = UDim2.new(1, -20, 0, 40)
-lookButton.Position = UDim2.new(0, 10, 0, 60)
-lookButton.Text = "Look at Player"
-lookButton.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
-lookButton.TextColor3 = Color3.new(1, 1, 1)
-lookButton.Font = Enum.Font.GothamBold
-lookButton.TextScaled = true
-lookButton.Parent = mainFrame
-
--- Player Selector Button
-local playerListButton = Instance.new("TextButton")
-playerListButton.Size = UDim2.new(1, -20, 0, 40)
-playerListButton.Position = UDim2.new(0, 10, 0, 110)
-playerListButton.Text = "Select Player"
-playerListButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-playerListButton.TextColor3 = Color3.new(1, 1, 1)
-playerListButton.Font = Enum.Font.Gotham
-playerListButton.TextScaled = true
-playerListButton.Parent = mainFrame
-
--- Dropdown Frame
-local dropdownFrame = Instance.new("Frame")
-dropdownFrame.Size = UDim2.new(1, -20, 0, 100)
-dropdownFrame.Position = UDim2.new(0, 10, 0, 160)
-dropdownFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-dropdownFrame.Visible = false
-dropdownFrame.ClipsDescendants = true
-dropdownFrame.Parent = mainFrame
-
-local uiListLayout = Instance.new("UIListLayout")
-uiListLayout.Padding = UDim.new(0, 2)
-uiListLayout.Parent = dropdownFrame
-
--- Scroll bar for dropdown
-local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = dropdownFrame.Size
-scrollFrame.Position = UDim2.new(0, 0, 0, 0)
-scrollFrame.CanvasSize = UDim2.new(0, 0, 5, 0)
-scrollFrame.ScrollBarThickness = 6
-scrollFrame.BackgroundTransparency = 1
-scrollFrame.Parent = dropdownFrame
-uiListLayout.Parent = scrollFrame
 
 -- Close Button
-local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0, 25, 0, 25)
-closeButton.Position = UDim2.new(1, -30, 0, 5)
-closeButton.Text = "X"
-closeButton.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
-closeButton.TextColor3 = Color3.new(1, 1, 1)
-closeButton.Font = Enum.Font.GothamBold
-closeButton.TextScaled = true
-closeButton.Parent = mainFrame
+local closeBtn = Instance.new("TextButton", mainFrame)
+closeBtn.Size = UDim2.new(0,25,0,25)
+closeBtn.Position = UDim2.new(1,-30,0,5)
+closeBtn.Text = "X"
+closeBtn.BackgroundColor3 = Color3.fromRGB(100,0,0)
+closeBtn.TextColor3 = Color3.new(1,1,1)
 
--- Minimized Button
-local openButton = Instance.new("TextButton")
-openButton.Size = UDim2.new(0, 100, 0, 40)
-openButton.Position = UDim2.new(0, 20, 0, 20)
-openButton.Text = "Open GUI"
-openButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-openButton.TextColor3 = Color3.new(1, 1, 1)
-openButton.Font = Enum.Font.GothamBold
-openButton.TextScaled = true
-openButton.Visible = false
-openButton.Parent = screenGui
+-- Highlight Toggle
+local highlightBtn = Instance.new("TextButton", mainFrame)
+highlightBtn.Size = UDim2.new(1,-20,0,30)
+highlightBtn.Position = UDim2.new(0,10,0,40)
+highlightBtn.Text = "Toggle Highlights"
+highlightBtn.BackgroundColor3 = Color3.fromRGB(255,0,0)
+highlightBtn.TextColor3 = Color3.new(1,1,1)
 
--- Toggle GUI
-closeButton.MouseButton1Click:Connect(function()
-	mainFrame.Visible = false
-	openButton.Visible = true
-end)
+-- Look Toggle
+local lookBtn = Instance.new("TextButton", mainFrame)
+lookBtn.Size = UDim2.new(1,-20,0,30)
+lookBtn.Position = UDim2.new(0,10,0,80)
+lookBtn.Text = "Look at Player"
+lookBtn.BackgroundColor3 = Color3.fromRGB(0,100,200)
+lookBtn.TextColor3 = Color3.new(1,1,1)
 
-openButton.MouseButton1Click:Connect(function()
-	mainFrame.Visible = true
-	openButton.Visible = false
-end)
+-- Player Dropdown Button
+local dropdownBtn = Instance.new("TextButton", mainFrame)
+dropdownBtn.Size = UDim2.new(1,-20,0,30)
+dropdownBtn.Position = UDim2.new(0,10,0,120)
+dropdownBtn.Text = "Select Player ▼"
+dropdownBtn.BackgroundColor3 = Color3.fromRGB(100,0,0)
+dropdownBtn.TextColor3 = Color3.new(1,1,1)
 
--- Highlighting Functions
-local function highlightCharacter(character)
-	if not character:FindFirstChild("Highlight") then
-		local highlight = Instance.new("Highlight")
-		highlight.Name = "Highlight"
-		highlight.FillColor = Color3.fromRGB(255, 0, 0)
-		highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
-		highlight.FillTransparency = 0.5
-		highlight.OutlineTransparency = 0
-		highlight.Adornee = character
-		highlight.Parent = character
+-- ScrollFrame for list
+local scrollFrame = Instance.new("ScrollingFrame", mainFrame)
+scrollFrame.Size = UDim2.new(1,-20,0,120)
+scrollFrame.Position = UDim2.new(0,10,0,160)
+scrollFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+scrollFrame.CanvasSize = UDim2.new(0,0,0,0)
+scrollFrame.ScrollBarThickness = 6
+scrollFrame.Visible = false
+
+local uiList = Instance.new("UIListLayout", scrollFrame)
+uiList.Padding = UDim.new(0,2)
+uiList.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Refresh Button
+local refreshBtn = Instance.new("TextButton", mainFrame)
+refreshBtn.Size = UDim2.new(1,-20,0,30)
+refreshBtn.Position = UDim2.new(0,10,0,290)
+refreshBtn.Text = "Refresh Player List"
+refreshBtn.BackgroundColor3 = Color3.fromRGB(80,0,0)
+refreshBtn.TextColor3 = Color3.new(1,1,1)
+
+-- Helpers: highlight and nametag
+local highlights = {}
+local function createEffects(player)
+	local char = player.Character
+	if not char or highlights[player] then return end
+	-- Highlight
+	local hl = Instance.new("Highlight")
+	hl.FillColor = Color3.fromRGB(255,0,0)
+	hl.OutlineColor = Color3.fromRGB(255,0,0)
+	hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	hl.Adornee = char
+	hl.Parent = char
+	highlights[player] = hl
+	-- Nametag
+	local head = char:FindFirstChild("Head")
+	if head then
+		local bg = Instance.new("BillboardGui", char)
+		bg.Size = UDim2.new(0,100,0,30)
+		bg.StudsOffset = Vector3.new(0,3,0)
+		bg.Adornee = head
+		bg.AlwaysOnTop = true
+		local label = Instance.new("TextLabel", bg)
+		label.Size = UDim2.new(1,0,1,0)
+		label.BackgroundTransparency = 1
+		label.TextColor3 = Color3.fromRGB(255,0,0)
+		label.Text = player.Name
 	end
 end
-
-local function addNameLabel(character, name)
-	local head = character:FindFirstChild("Head")
-	if head and not head:FindFirstChild("NameLabelGui") then
-		local labelGui = Instance.new("BillboardGui")
-		labelGui.Name = "NameLabelGui"
-		labelGui.Size = UDim2.new(0, 200, 0, 50)
-		labelGui.StudsOffset = Vector3.new(0, 2, 0)
-		labelGui.AlwaysOnTop = true
-		labelGui.Adornee = head
-		labelGui.Parent = head
-
-		local textLabel = Instance.new("TextLabel")
-		textLabel.Size = UDim2.new(1, 0, 1, 0)
-		textLabel.BackgroundTransparency = 1
-		textLabel.Text = name
-		textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
-		textLabel.TextStrokeTransparency = 0.5
-		textLabel.Font = Enum.Font.GothamBold
-		textLabel.TextScaled = true
-		textLabel.Parent = labelGui
+local function removeEffects(player)
+	if highlights[player] then
+		highlights[player]:Destroy()
+		highlights[player] = nil
 	end
-end
-
-local function removeEffects(character)
-	if character:FindFirstChild("Highlight") then
-		character.Highlight:Destroy()
-	end
-	local head = character:FindFirstChild("Head")
-	if head and head:FindFirstChild("NameLabelGui") then
-		head.NameLabelGui:Destroy()
-	end
-end
-
-local function updateEffects()
-	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and player.Character then
-			if toggledOn then
-				highlightCharacter(player.Character)
-				addNameLabel(player.Character, player.Name)
-			else
-				removeEffects(player.Character)
-			end
+	if player.Character then
+		for _, gui in pairs(player.Character:GetChildren()) do
+			if gui:IsA("BillboardGui") then gui:Destroy() end
 		end
 	end
 end
 
--- Refresh Player List
-local function refreshPlayerList()
-	scrollFrame:ClearAllChildren()
-	uiListLayout.Parent = scrollFrame
-	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer then
-			local btn = Instance.new("TextButton")
-			btn.Size = UDim2.new(1, 0, 0, 30)
-			btn.Text = player.Name
-			btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-			btn.TextColor3 = Color3.new(1, 1, 1)
+-- Update the dropdown list (show DisplayName)
+local function refreshList()
+	-- clear existing buttons
+	for _, child in pairs(scrollFrame:GetChildren()) do
+		if child:IsA("TextButton") then child:Destroy() end
+	end
+	-- recreate for each player (excluding you)
+	for _, pl in ipairs(Players:GetPlayers()) do
+		if pl ~= LocalPlayer then
+			local btn = Instance.new("TextButton", scrollFrame)
+			btn.Size = UDim2.new(1,-4,0,30)
+			btn.Text = pl.DisplayName
+			btn.BackgroundColor3 = Color3.fromRGB(150,0,0)
+			btn.TextColor3 = Color3.new(1,1,1)
 			btn.Font = Enum.Font.Gotham
 			btn.TextScaled = true
-			btn.Parent = scrollFrame
 			btn.MouseButton1Click:Connect(function()
-				selectedPlayer = player
-				playerListButton.Text = "Selected: " .. player.Name
-				dropdownFrame.Visible = false
+				selectedPlayer = pl
+				dropdownBtn.Text = "Target: "..pl.DisplayName.." ▼"
+				scrollFrame.Visible = false
 			end)
 		end
 	end
+	-- adjust scrollable area
+	scrollFrame.CanvasSize = UDim2.new(0,0,0,#scrollFrame:GetChildren()*32)
 end
 
--- Update in real-time
-Players.PlayerAdded:Connect(function(player)
-	refreshPlayerList()
-	if player ~= LocalPlayer then
-		player.CharacterAdded:Connect(function(char)
-			wait(1)
-			if toggledOn then
-				highlightCharacter(char)
-				addNameLabel(char, player.Name)
+-- Connections --
+
+-- Menu toggle
+menuButton.MouseButton1Click:Connect(function()
+	mainFrame.Visible = not mainFrame.Visible
+end)
+
+-- Close
+closeBtn.MouseButton1Click:Connect(function()
+	mainFrame.Visible = false
+	menuButton.Visible = true
+end)
+
+-- Highlights toggle
+highlightBtn.MouseButton1Click:Connect(function()
+	highlightsOn = not highlightsOn
+	for _, pl in ipairs(Players:GetPlayers()) do
+		if pl ~= LocalPlayer then
+			if highlightsOn then createEffects(pl) else removeEffects(pl) end
+		end
+	end
+end)
+
+-- Look at player toggle + first-person switch
+lookBtn.MouseButton1Click:Connect(function()
+	if not selectedPlayer then return end
+	looking = not looking
+
+	if looking then
+		-- force first-person
+		oldCameraMode = LocalPlayer.CameraMode
+		LocalPlayer.CameraMode = Enum.CameraMode.LockFirstPerson
+
+		lookBtn.Text = "Stop Looking"
+		lookConnection = RunService.RenderStepped:Connect(function()
+			local pl = selectedPlayer
+			if pl and pl.Character and pl.Character:FindFirstChild("Head") then
+				local headPos = pl.Character.Head.Position
+				local camPos  = Camera.CFrame.Position
+				local target  = CFrame.new(camPos, headPos)
+				Camera.CFrame = Camera.CFrame:Lerp(target, 0.1)
 			end
 		end)
+	else
+		-- restore camera mode
+		LocalPlayer.CameraMode = oldCameraMode or Enum.CameraMode.Classic
+
+		lookBtn.Text = "Look at Player"
+		if lookConnection then
+			lookConnection:Disconnect()
+			lookConnection = nil
+		end
 	end
 end)
 
-Players.PlayerRemoving:Connect(function()
-	refreshPlayerList()
+-- Dropdown toggle
+dropdownBtn.MouseButton1Click:Connect(function()
+	scrollFrame.Visible = not scrollFrame.Visible
 end)
 
--- Setup existing players
-for _, player in ipairs(Players:GetPlayers()) do
-	if player ~= LocalPlayer then
-		player.CharacterAdded:Connect(function(char)
-			wait(1)
-			if toggledOn then
-				highlightCharacter(char)
-				addNameLabel(char, player.Name)
-			end
-		end)
-	end
-end
+-- Refresh list button
+refreshBtn.MouseButton1Click:Connect(refreshList)
 
--- Button Connections
-toggleButton.MouseButton1Click:Connect(function()
-	toggledOn = not toggledOn
-	toggleButton.Text = toggledOn and "Turn Off Highlights" or "Turn On Highlights"
-	updateEffects()
-end)
+-- Auto-refresh when players join/leave
+Players.PlayerAdded:Connect(refreshList)
+Players.PlayerRemoving:Connect(refreshList)
 
-lookButton.MouseButton1Click:Connect(function()
-	if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("Head") then
-		local cam = workspace.CurrentCamera
-		local headPos = selectedPlayer.Character.Head.Position
-		local camPos = cam.CFrame.Position
-		cam.CFrame = CFrame.new(camPos, headPos)
-	end
-end)
-
-playerListButton.MouseButton1Click:Connect(function()
-	dropdownFrame.Visible = not dropdownFrame.Visible
-	refreshPlayerList()
-end)
+-- Initial population
+refreshList()
