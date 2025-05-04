@@ -1,0 +1,112 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local toggledOn = false
+
+-- Create ScreenGui and Button
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "HighlightToggleGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 150, 0, 50)
+toggleButton.Position = UDim2.new(0, 20, 0, 20)
+toggleButton.Text = "Toggle esp"
+toggleButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+toggleButton.TextColor3 = Color3.new(1, 1, 1)
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextScaled = true
+toggleButton.Parent = screenGui
+
+-- Functions to add/remove highlight and label
+local function highlightCharacter(character)
+	if not character:FindFirstChild("Highlight") then
+		local highlight = Instance.new("Highlight")
+		highlight.Name = "Highlight"
+		highlight.FillColor = Color3.fromRGB(255, 0, 0)
+		highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+		highlight.FillTransparency = 0.5
+		highlight.OutlineTransparency = 0
+		highlight.Adornee = character
+		highlight.Parent = character
+	end
+end
+
+local function addNameLabel(character, playerName)
+	local head = character:FindFirstChild("Head")
+	if not head then return end
+
+	if not head:FindFirstChild("NameLabelGui") then
+		local billboardGui = Instance.new("BillboardGui")
+		billboardGui.Name = "NameLabelGui"
+		billboardGui.Size = UDim2.new(0, 200, 0, 50)
+		billboardGui.StudsOffset = Vector3.new(0, 2, 0)
+		billboardGui.AlwaysOnTop = true
+		billboardGui.Adornee = head
+		billboardGui.Parent = head
+
+		local textLabel = Instance.new("TextLabel")
+		textLabel.Size = UDim2.new(1, 0, 1, 0)
+		textLabel.BackgroundTransparency = 1
+		textLabel.Text = playerName
+		textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+		textLabel.TextStrokeTransparency = 0.5
+		textLabel.Font = Enum.Font.GothamBold
+		textLabel.TextScaled = true
+		textLabel.Parent = billboardGui
+	end
+end
+
+local function removeEffects(character)
+	if character:FindFirstChild("Highlight") then
+		character.Highlight:Destroy()
+	end
+	local head = character:FindFirstChild("Head")
+	if head and head:FindFirstChild("NameLabelGui") then
+		head.NameLabelGui:Destroy()
+	end
+end
+
+-- Toggle effect for all players
+local function updateEffects()
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character then
+			if toggledOn then
+				highlightCharacter(player.Character)
+				addNameLabel(player.Character, player.Name)
+			else
+				removeEffects(player.Character)
+			end
+		end
+	end
+end
+
+-- Watch for player joins/respawns
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(character)
+		wait(1)
+		if toggledOn then
+			highlightCharacter(character)
+			addNameLabel(character, player.Name)
+		end
+	end)
+end)
+
+for _, player in ipairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer then
+		player.CharacterAdded:Connect(function(character)
+			wait(1)
+			if toggledOn then
+				highlightCharacter(character)
+				addNameLabel(character, player.Name)
+			end
+		end)
+	end
+end
+
+-- Button click toggles effect
+toggleButton.MouseButton1Click:Connect(function()
+	toggledOn = not toggledOn
+	toggleButton.Text = toggledOn and "Turn Off Highlights" or "Turn On Highlights"
+	updateEffects()
+end)
