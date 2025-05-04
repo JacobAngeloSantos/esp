@@ -46,7 +46,7 @@ closeBtn.TextColor3 = Color3.new(1,1,1)
 local highlightBtn = Instance.new("TextButton", mainFrame)
 highlightBtn.Size = UDim2.new(1,-20,0,30)
 highlightBtn.Position = UDim2.new(0,10,0,40)
-highlightBtn.Text = "Toggle Highlights"
+highlightBtn.Text = "Toggle esp"
 highlightBtn.BackgroundColor3 = Color3.fromRGB(255,0,0)
 highlightBtn.TextColor3 = Color3.new(1,1,1)
 
@@ -54,7 +54,7 @@ highlightBtn.TextColor3 = Color3.new(1,1,1)
 local lookBtn = Instance.new("TextButton", mainFrame)
 lookBtn.Size = UDim2.new(1,-20,0,30)
 lookBtn.Position = UDim2.new(0,10,0,80)
-lookBtn.Text = "Look at Player"
+lookBtn.Text = "aimbot"
 lookBtn.BackgroundColor3 = Color3.fromRGB(0,100,200)
 lookBtn.TextColor3 = Color3.new(1,1,1)
 
